@@ -14,6 +14,8 @@ from src.routes.user import user_bp
 from src.routes.smartlink import smartlink_bp
 from src.routes.auth import auth_bp
 from src.routes.proxy import proxy_bp
+from src.routes.admin import admin_bp
+from src.routes.payment import payment_bp
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -48,6 +50,8 @@ app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(smartlink_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(proxy_bp, url_prefix='/api')
+app.register_blueprint(admin_bp, url_prefix='/api')
+app.register_blueprint(payment_bp, url_prefix='/api')
 
 # Gestionnaire d'erreur JWT
 @jwt.expired_token_loader

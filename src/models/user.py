@@ -17,6 +17,13 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
+    # Nouveau : Système d'administration et paiement
+    is_superadmin = db.Column(db.Boolean, default=False, nullable=False)
+    subscription_status = db.Column(db.String(20), default='pending', nullable=False)  # pending, active, expired, cancelled
+    subscription_end_date = db.Column(db.DateTime, nullable=True)
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    
     # Relations
     smartlinks = db.relationship('Smartlink', backref='user', lazy=True, cascade="all, delete-orphan")
 
@@ -31,14 +38,26 @@ class User(db.Model):
         """Vérifie si le mot de passe est correct"""
         return check_password_hash(self.password_hash, password)
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_admin_fields=False):
+        data = {
             'id': self.id,
             'username': self.username,
             'email': self.email,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'is_active': self.is_active
+            'is_active': self.is_active,
+            'is_superadmin': self.is_superadmin,
+            'subscription_status': self.subscription_status,
+            'subscription_end_date': self.subscription_end_date.isoformat() if self.subscription_end_date else None
         }
+        
+        # Inclure les champs Stripe seulement pour les superadmins
+        if include_admin_fields:
+            data.update({
+                'stripe_customer_id': self.stripe_customer_id,
+                'stripe_subscription_id': self.stripe_subscription_id
+            })
+        
+        return data
 
 class Smartlink(db.Model):
     __tablename__ = 'smartlinks'

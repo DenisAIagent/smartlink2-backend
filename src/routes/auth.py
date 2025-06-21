@@ -78,7 +78,8 @@ def register():
             'message': 'Utilisateur créé avec succès',
             'user': user.to_dict(),
             'access_token': access_token,
-            'refresh_token': refresh_token
+            'refresh_token': refresh_token,
+            'requires_payment': True  # Indiquer qu'un paiement est requis
         }), 201
         
     except Exception as e:
@@ -117,11 +118,18 @@ def login():
         access_token = create_access_token(identity=user.id)
         refresh_token = create_refresh_token(identity=user.id)
         
+        # Déterminer si un paiement est requis
+        requires_payment = (
+            not user.is_superadmin and 
+            user.subscription_status in ['pending', 'expired', 'cancelled']
+        )
+        
         return jsonify({
             'message': 'Connexion réussie',
             'user': user.to_dict(),
             'access_token': access_token,
-            'refresh_token': refresh_token
+            'refresh_token': refresh_token,
+            'requires_payment': requires_payment
         }), 200
         
     except Exception as e:

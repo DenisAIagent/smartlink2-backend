@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import db, Smartlink, Platform, User
+from src.middleware.subscription import subscription_required
 from datetime import datetime
 import string
 import random
@@ -14,6 +15,7 @@ def generate_smartlink_id():
 
 @smartlink_bp.route('/smartlinks', methods=['POST'])
 @jwt_required()
+@subscription_required
 def create_smartlink():
     """Créer un nouveau smartlink"""
     try:
@@ -119,6 +121,7 @@ def get_smartlink_public(smartlink_id):
 
 @smartlink_bp.route('/smartlinks/<string:smartlink_id>', methods=['PUT'])
 @jwt_required()
+@subscription_required
 def update_smartlink(smartlink_id):
     """Mettre à jour un smartlink"""
     try:
@@ -187,6 +190,7 @@ def update_smartlink(smartlink_id):
 
 @smartlink_bp.route('/smartlinks/<string:smartlink_id>', methods=['DELETE'])
 @jwt_required()
+@subscription_required
 def delete_smartlink(smartlink_id):
     """Supprimer un smartlink"""
     try:
