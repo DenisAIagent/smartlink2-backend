@@ -78,11 +78,18 @@ def invalid_token_callback(error):
 def missing_token_callback(error):
     return {'error': 'Token manquant', 'message': 'Authentification requise'}, 401
 
-# Initialisation de la base de données pour le développement
-# En production, utilisez flask db upgrade
-if os.environ.get('FLASK_ENV') == 'development':
-    with app.app_context():
+# Initialisation de la base de données
+# Créer les tables automatiquement si elles n'existent pas
+with app.app_context():
+    try:
+        # Vérifier si les tables existent en tentant une requête simple
+        from src.models.user import User
+        User.query.first()
+        print("Base de données déjà initialisée")
+    except Exception as e:
+        print(f"Initialisation de la base de données nécessaire: {e}")
         db.create_all()
+        print("Tables créées avec succès")
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
