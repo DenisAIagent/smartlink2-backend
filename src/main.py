@@ -29,9 +29,13 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
 # Configuration CORS sécurisée
-cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(',')
-# Nettoyer les espaces
-cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173')
+# Nettoyer les séparateurs multiples et les espaces
+cors_origins = []
+for origin in cors_origins_str.replace(';', ',').split(','):
+    cleaned = origin.strip()
+    if cleaned:
+        cors_origins.append(cleaned)
 
 print(f"CORS Origins configurées: {cors_origins}")  # Debug en production
 
