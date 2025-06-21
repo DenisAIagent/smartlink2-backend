@@ -92,23 +92,44 @@ with app.app_context():
         db.create_all()
         print("Tables créées avec succès")
     
-    # Auto-promotion du premier utilisateur en superadmin
+    # Auto-création et promotion de Denis en superadmin
     try:
-        # Chercher l'utilisateur Denis et le promouvoir en superadmin
+        # Chercher l'utilisateur Denis
         denis_user = User.query.filter(
             (User.username == 'Denisadam') | (User.email == 'denis@mdmcmusicads.com')
         ).first()
         
-        if denis_user and not denis_user.is_superadmin:
-            denis_user.is_superadmin = True
-            denis_user.subscription_status = 'active'
-            denis_user.is_active = True
+        if denis_user:
+            # Utilisateur existe - vérifier s'il est superadmin
+            if not denis_user.is_superadmin:
+                denis_user.is_superadmin = True
+                denis_user.subscription_status = 'active'
+                denis_user.is_active = True
+                db.session.commit()
+                print(f"✅ {denis_user.username} promu en superadmin automatiquement")
+            else:
+                print(f"ℹ️ {denis_user.username} est déjà superadmin")
+        else:
+            # Utilisateur n'existe pas - le créer en superadmin
+            print("🚀 Création automatique de Denis en superadmin...")
+            denis_superadmin = User(
+                username='Denisadam',
+                email='denis@mdmcmusicads.com',
+                is_superadmin=True,
+                subscription_status='active',
+                is_active=True
+            )
+            denis_superadmin.set_password('SmartLinks2024!')  # Mot de passe par défaut
+            
+            db.session.add(denis_superadmin)
             db.session.commit()
-            print(f"✅ {denis_user.username} promu en superadmin automatiquement")
-        elif denis_user:
-            print(f"ℹ️ {denis_user.username} est déjà superadmin")
+            print(f"✅ Denis créé en superadmin avec le mot de passe: SmartLinks2024!")
+            print(f"👤 Nom d'utilisateur: Denisadam")
+            print(f"📧 Email: denis@mdmcmusicads.com")
+            
     except Exception as e:
-        print(f"Info: Promotion superadmin - {e}")
+        db.session.rollback()
+        print(f"Info: Gestion Denis superadmin - {e}")
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
