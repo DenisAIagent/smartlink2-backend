@@ -38,6 +38,7 @@ for origin in cors_origins_str.replace(';', ',').split(','):
         cors_origins.append(cleaned)
 
 print(f"CORS Origins configurées: {cors_origins}")  # Debug en production
+print("🚀 SmartLinks Backend v2.0 - Promotion superadmin activée")  # Force redeploy
 
 CORS(app, 
      origins=cors_origins,
