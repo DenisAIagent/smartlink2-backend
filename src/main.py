@@ -90,6 +90,24 @@ with app.app_context():
         print(f"Initialisation de la base de données nécessaire: {e}")
         db.create_all()
         print("Tables créées avec succès")
+    
+    # Auto-promotion du premier utilisateur en superadmin
+    try:
+        # Chercher l'utilisateur Denis et le promouvoir en superadmin
+        denis_user = User.query.filter(
+            (User.username == 'Denisadam') | (User.email == 'denis@mdmcmusicads.com')
+        ).first()
+        
+        if denis_user and not denis_user.is_superadmin:
+            denis_user.is_superadmin = True
+            denis_user.subscription_status = 'active'
+            denis_user.is_active = True
+            db.session.commit()
+            print(f"✅ {denis_user.username} promu en superadmin automatiquement")
+        elif denis_user:
+            print(f"ℹ️ {denis_user.username} est déjà superadmin")
+    except Exception as e:
+        print(f"Info: Promotion superadmin - {e}")
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
