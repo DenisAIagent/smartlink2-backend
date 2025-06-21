@@ -29,9 +29,17 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
 # Configuration CORS sécurisée
+cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(',')
+# Nettoyer les espaces
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+
+print(f"CORS Origins configurées: {cors_origins}")  # Debug en production
+
 CORS(app, 
-     origins=os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(','),
-     supports_credentials=True)
+     origins=cors_origins,
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Configuration de la base de données
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
