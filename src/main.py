@@ -47,11 +47,17 @@ CORS(app,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Configuration de la base de données
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", 
-    "sqlite:///test_smartlinks.db"
-)
+database_url = os.environ.get("DATABASE_URL", "sqlite:///test_smartlinks.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Debug: Afficher le type de base de données utilisée
+db_type = "SQLite" if database_url.startswith("sqlite") else "MySQL/PostgreSQL"
+print(f"🗄️ Base de données: {db_type}")
+if not database_url.startswith("sqlite"):
+    # Masquer les credentials dans les logs
+    safe_url = database_url.split('@')[1] if '@' in database_url else database_url
+    print(f"🔗 Connexion: {safe_url}")
 
 # Initialisation des extensions
 db.init_app(app)
