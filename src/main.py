@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from src.models.user import db, migrate
 from src.models.password_reset import PasswordResetToken
-from src.services.email_service import mail
+# from src.services.email_service import mail  # SUPPRIMÉ - EmailJS utilisé côté frontend
 from src.routes.user import user_bp
 from src.routes.smartlink import smartlink_bp
 from src.routes.auth import auth_bp
@@ -21,6 +21,8 @@ from src.routes.payment import payment_bp
 
 # Charger les variables d'environnement
 load_dotenv()
+
+print("📧 Email backend SUPPRIMÉ - EmailJS utilisé côté frontend")
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 
@@ -71,7 +73,7 @@ if not database_url.startswith("sqlite"):
 
 # Initialisation des extensions
 db.init_app(app)
-mail.init_app(app)
+# mail.init_app(app)  # SUPPRIMÉ - EmailJS utilisé côté frontend
 migrate.init_app(app, db)
 jwt = JWTManager(app)
 
@@ -166,4 +168,7 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    port = int(os.environ.get('PORT', 5001))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    print(f"🚀 Démarrage serveur Railway - Port: {port} | Debug: {debug_mode}")
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
