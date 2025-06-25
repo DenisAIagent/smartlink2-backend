@@ -10,6 +10,8 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 from src.models.user import db, migrate
+from src.models.password_reset import db as password_reset_db
+from src.services.email_service import mail
 from src.routes.user import user_bp
 from src.routes.smartlink import smartlink_bp
 from src.routes.auth import auth_bp
@@ -27,6 +29,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-produ
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+# Configuration Flask-Mail
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "True").lower() == "true"
+app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "False").lower() == "true"
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
 
 # Configuration CORS sécurisée
 cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173')
@@ -61,6 +71,7 @@ if not database_url.startswith("sqlite"):
 
 # Initialisation des extensions
 db.init_app(app)
+mail.init_app(app)
 migrate.init_app(app, db)
 jwt = JWTManager(app)
 
