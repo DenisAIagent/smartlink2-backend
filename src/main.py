@@ -10,7 +10,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 from src.models.user import db, migrate
-from src.models.password_reset import db as password_reset_db
+from src.models.password_reset import PasswordResetToken
 from src.services.email_service import mail
 from src.routes.user import user_bp
 from src.routes.smartlink import smartlink_bp
