@@ -1,5 +1,5 @@
 from src.models.password_reset import PasswordResetToken
-from src.services.email_service import send_password_reset_email, send_password_changed_email
+# from src.services.email_service import send_password_reset_email, send_password_changed_email  # SUPPRIMÉ - EmailJS utilisé côté frontend
 import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
@@ -242,7 +242,7 @@ def update_profile():
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    """Demande de récupération de mot de passe"""
+    """Génère un token de récupération - EmailJS gérera l'envoi côté frontend"""
     try:
         data = request.get_json()
         
@@ -268,20 +268,23 @@ def forgot_password():
             # Créer un token de récupération
             reset_token = PasswordResetToken.create_token(user.id)
             
-            # Envoyer l'email de récupération
+            # 📧 Retourner le token pour que le frontend l'envoie via EmailJS
             frontend_url = os.getenv('FRONTEND_URL', 'https://smartlinks.mdmcmusicads.com')
-            email_sent = send_password_reset_email(user.email, reset_token.token, frontend_url)
+            reset_link = f"{frontend_url}/reset-password?token={reset_token.token}"
             
-            if email_sent:
-                return jsonify({
-                    'message': 'Si un compte existe avec cette adresse email, un lien de récupération a été envoyé.'
-                }), 200
-            else:
-                return jsonify({'error': 'Erreur lors de l\'envoi de l\'email'}), 500
+            return jsonify({
+                'message': 'Token de récupération généré',
+                'email_data': {
+                    'to_email': user.email,
+                    'username': user.username,
+                    'reset_link': reset_link,
+                    'token': reset_token.token
+                }
+            }), 200
         
         # Même message pour des raisons de sécurité
         return jsonify({
-            'message': 'Si un compte existe avec cette adresse email, un lien de récupération a été envoyé.'
+            'message': 'Si un compte existe avec cette adresse email, les données de récupération ont été générées.'
         }), 200
         
     except Exception as e:
@@ -330,13 +333,16 @@ def reset_password():
         # Marquer le token comme utilisé
         reset_token.mark_as_used()
         
-        # Envoyer un email de confirmation
-        send_password_changed_email(user.email, user.username)
-        
         db.session.commit()
         
+        # 📧 Retourner les données pour confirmation via EmailJS
         return jsonify({
-            'message': 'Mot de passe réinitialisé avec succès'
+            'message': 'Mot de passe réinitialisé avec succès',
+            'email_data': {
+                'to_email': user.email,
+                'username': user.username,
+                'confirmation_message': 'Votre mot de passe a été modifié avec succès.'
+            }
         }), 200
         
     except Exception as e:
