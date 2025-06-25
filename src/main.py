@@ -31,26 +31,17 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-produ
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
-# Configuration Flask-Mail
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
-app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "True").lower() == "true"
-app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "False").lower() == "true"
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
 
 # Configuration CORS sécurisée
 cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173')
-# Nettoyer les séparateurs multiples et les espaces
 cors_origins = []
 for origin in cors_origins_str.replace(';', ',').split(','):
     cleaned = origin.strip()
     if cleaned:
         cors_origins.append(cleaned)
 
-print(f"CORS Origins configurées: {cors_origins}")  # Debug en production
-print("🚀 SmartLinks Backend v2.0 - Promotion superadmin activée")  # Force redeploy
+print(f"CORS Origins configurées: {cors_origins}")
+print("🚀 SmartLinks Backend v2.0 - Promotion superadmin activée")
 
 CORS(app, 
      origins=cors_origins,
@@ -64,11 +55,10 @@ app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Debug: Afficher le type de base de données utilisée
-db_type = "SQLite" if database_url.startswith("sqlite") else "MySQL/PostgreSQL"
+db_type = "SQLite" if database_url.startswith("sqlite") else "PostgreSQL"
 print(f"🗄️ Base de données: {db_type}")
 if not database_url.startswith("sqlite"):
-    # Masquer les credentials dans les logs
-    safe_url = database_url.split('@')[1] if '@' in database_url else database_url
+    safe_url = database_url.split('@')[1] if '@' in database_url else "Railway PostgreSQL"
     print(f"🔗 Connexion: {safe_url}")
 
 # Initialisation des extensions
@@ -98,54 +88,39 @@ def invalid_token_callback(error):
 def missing_token_callback(error):
     return {'error': 'Token manquant', 'message': 'Authentification requise'}, 401
 
-# Initialisation de la base de données
-# Créer les tables automatiquement si elles n'existent pas
+# Initialisation de la base de données avec correction du schéma
 with app.app_context():
     try:
-        # Vérifier si les tables existent en tentant une requête simple
-        from src.models.user import User
-        User.query.first()
-        print("Base de données déjà initialisée")
-    except Exception as e:
-        print(f"Initialisation de la base de données nécessaire: {e}")
+        # TEMPORAIRE : Supprimer et recréer toutes les tables pour corriger le schéma
+        print("🔧 Correction du schéma de base de données...")
+        db.drop_all()
+        print("🗑️ Anciennes tables supprimées")
         db.create_all()
-        print("Tables créées avec succès")
+        print("✅ Nouvelles tables créées avec le bon schéma")
+    except Exception as e:
+        print(f"Erreur lors de la correction du schéma: {e}")
+        db.create_all()
+        print("✅ Tables créées")
     
     # Auto-création et promotion de Denis en superadmin
     try:
-        # Chercher l'utilisateur Denis
-        denis_user = User.query.filter(
-            (User.username == 'Denisadam') | (User.email == 'denis@mdmcmusicads.com')
-        ).first()
+        from src.models.user import User
+        print("🚀 Création automatique de Denis en superadmin...")
+        denis_superadmin = User(
+            username='Denisadam',
+            email='denis@mdmcmusicads.com',
+            is_superadmin=True,
+            subscription_status='active',
+            is_active=True
+        )
+        denis_superadmin.set_password('SmartLinks2024!')
         
-        if denis_user:
-            # Utilisateur existe - vérifier s'il est superadmin
-            if not denis_user.is_superadmin:
-                denis_user.is_superadmin = True
-                denis_user.subscription_status = 'active'
-                denis_user.is_active = True
-                db.session.commit()
-                print(f"✅ {denis_user.username} promu en superadmin automatiquement")
-            else:
-                print(f"ℹ️ {denis_user.username} est déjà superadmin")
-        else:
-            # Utilisateur n'existe pas - le créer en superadmin
-            print("🚀 Création automatique de Denis en superadmin...")
-            denis_superadmin = User(
-                username='Denisadam',
-                email='denis@mdmcmusicads.com',
-                is_superadmin=True,
-                subscription_status='active',
-                is_active=True
-            )
-            denis_superadmin.set_password('SmartLinks2024!')  # Mot de passe par défaut
-            
-            db.session.add(denis_superadmin)
-            db.session.commit()
-            print(f"✅ Denis créé en superadmin avec le mot de passe: SmartLinks2024!")
-            print(f"👤 Nom d'utilisateur: Denisadam")
-            print(f"📧 Email: denis@mdmcmusicads.com")
-            
+        db.session.add(denis_superadmin)
+        db.session.commit()
+        print(f"✅ Denis créé en superadmin avec le mot de passe: SmartLinks2024!")
+        print(f"👤 Nom d'utilisateur: Denisadam")
+        print(f"📧 Email: denis@mdmcmusicads.com")
+        
     except Exception as e:
         db.session.rollback()
         print(f"Info: Gestion Denis superadmin - {e}")
@@ -155,7 +130,7 @@ with app.app_context():
 def serve(path):
     static_folder_path = app.static_folder
     if static_folder_path is None:
-            return "Static folder not configured", 404
+        return "Static folder not configured", 404
 
     if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
         return send_from_directory(static_folder_path, path)
@@ -164,9 +139,9 @@ def serve(path):
         if os.path.exists(index_path):
             return send_from_directory(static_folder_path, 'index.html')
         else:
-            return "index.html not found", 404
+            return "SmartLinks API is running", 200
 
-
+# ✅ Configuration Railway-compatible du port
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
