@@ -18,6 +18,7 @@ from src.routes.auth import auth_bp
 from src.routes.proxy import proxy_bp
 from src.routes.admin import admin_bp
 from src.routes.payment import payment_bp
+from sqlalchemy import text
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -88,36 +89,71 @@ def invalid_token_callback(error):
 def missing_token_callback(error):
     return {'error': 'Token manquant', 'message': 'Authentification requise'}, 401
 
-# Initialisation de la base de données avec correction du schéma
+# Initialisation de la base de données avec correction du schéma PostgreSQL
 with app.app_context():
     try:
-        # TEMPORAIRE : Supprimer et recréer toutes les tables pour corriger le schéma
-        print("🔧 Correction du schéma de base de données...")
-        db.drop_all()
-        print("🗑️ Anciennes tables supprimées")
+        print("🔧 Correction du schéma PostgreSQL avec CASCADE...")
+        
+        # Pour PostgreSQL : Supprimer et recréer le schéma public entier
+        if not database_url.startswith("sqlite"):
+            # Méthode CASCADE pour PostgreSQL
+            with db.engine.begin() as conn:
+                # Supprimer le schéma public avec CASCADE (supprime tout)
+                conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+                print("🗑️ Schéma PostgreSQL supprimé avec CASCADE")
+                
+                # Recréer le schéma public
+                conn.execute(text("CREATE SCHEMA public"))
+                print("✅ Nouveau schéma PostgreSQL créé")
+        else:
+            # Pour SQLite : méthode classique
+            db.drop_all()
+            print("🗑️ Tables SQLite supprimées")
+        
+        # Créer toutes les tables avec le bon schéma
         db.create_all()
         print("✅ Nouvelles tables créées avec le bon schéma")
+        
     except Exception as e:
-        print(f"Erreur lors de la correction du schéma: {e}")
-        db.create_all()
-        print("✅ Tables créées")
+        print(f"Info: Gestion schéma DB - {e}")
+        # Fallback : essayer juste de créer les tables
+        try:
+            db.create_all()
+            print("✅ Tables créées (fallback)")
+        except Exception as e2:
+            print(f"Erreur création tables: {e2}")
     
     # Auto-création et promotion de Denis en superadmin
     try:
         from src.models.user import User
         print("🚀 Création automatique de Denis en superadmin...")
-        denis_superadmin = User(
-            username='Denisadam',
-            email='denis@mdmcmusicads.com',
-            is_superadmin=True,
-            subscription_status='active',
-            is_active=True
-        )
-        denis_superadmin.set_password('SmartLinks2024!')
         
-        db.session.add(denis_superadmin)
-        db.session.commit()
-        print(f"✅ Denis créé en superadmin avec le mot de passe: SmartLinks2024!")
+        # Vérifier si Denis existe déjà
+        existing_denis = User.query.filter_by(username='Denisadam').first()
+        if not existing_denis:
+            denis_superadmin = User(
+                username='Denisadam',
+                email='denis@mdmcmusicads.com',
+                is_superadmin=True,
+                subscription_status='active',
+                is_active=True
+            )
+            denis_superadmin.set_password('SmartLinks2024!')
+            
+            db.session.add(denis_superadmin)
+            db.session.commit()
+            print(f"✅ Denis créé en superadmin avec le mot de passe: SmartLinks2024!")
+        else:
+            # Promouvoir Denis s'il existe mais n'est pas superadmin
+            if not existing_denis.is_superadmin:
+                existing_denis.is_superadmin = True
+                existing_denis.subscription_status = 'active'
+                existing_denis.is_active = True
+                db.session.commit()
+                print(f"✅ Denis promu en superadmin")
+            else:
+                print(f"✅ Denis déjà superadmin")
+        
         print(f"👤 Nom d'utilisateur: Denisadam")
         print(f"📧 Email: denis@mdmcmusicads.com")
         
